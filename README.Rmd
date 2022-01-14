@@ -37,7 +37,6 @@ knitr::opts_chunk$set(
 )
 library(tidyverse)
 library(tmap)
-library(stplanr)
 ```
 
 # Introduction
@@ -227,6 +226,52 @@ plot(sf::read_sf("output_max50.geojson")$geometry, add = TRUE)
 plot(zones$geometry, border = "grey")
 plot(network$geometry[sel_net], col = "red", add = TRUE, lwd = 0.1)
 plot(sf::read_sf("output_max10.geojson")$geometry, add = TRUE)
+
+# Replicating in ggplot2 -- benefits in that can more easily
+# play with visual parameters add titles etc. than baseR.
+# Also can extend in various ways (using different line primitives etc.)
+library(sf)
+library(patchwork)
+# network = sf::read_sf("network.geojson")
+# plot(zones$geometry, border = "grey")
+# sel_net = sample(nrow(network), 1000)
+# plot(network$geometry[sel_net], col = "red", add = TRUE, lwd = 0.1)
+# plot(desire_lines_top$geometry, add = TRUE)
+sel_net = sample(nrow(network), 1000)
+theme_set(theme_void())
+p1 <- ggplot() +
+  geom_sf(data=zones, size=.1, alpha=.3) +
+  geom_sf(data=network$geometry[sel_net], colour="#67000d", size=.1)+
+  geom_sf(data=desire_lines$geometry[sel_net], alpha=.2, size=.7)+
+  coord_sf(crs=st_crs(zones), datum=NA)+
+  ggtitle("title here")
+  
+#plot(zones$geometry, border = "grey")
+sel_net = sample(nrow(network), 1000)
+# plot(network$geometry[sel_net], col = "red", add = TRUE, lwd = 0.1)
+# plot(sf::read_sf("output_max10k.geojson")$geometry, add = TRUE)
+p2 <- ggplot() +
+  geom_sf(data=zones, size=.1, alpha=.3) +
+  geom_sf(data=network$geometry[sel_net], colour="#67000d", size=.1)+
+  geom_sf(data=read_sf("output_max10k.geojson"), alpha=.2, size=.7)+
+  coord_sf(crs=st_crs(zones), datum=NA)+
+  ggtitle("title here")
+
+p3 <- ggplot() +
+  geom_sf(data=zones, size=.1, alpha=.3) +
+  geom_sf(data=network$geometry[sel_net], colour="#67000d", size=.1)+
+  geom_sf(data=read_sf("output_max50k.geojson"), alpha=.2, size=.7)+
+  coord_sf(crs=st_crs(zones), datum=NA)+
+  ggtitle("title here")
+
+p3 <- ggplot() +
+  geom_sf(data=zones, size=.1, alpha=.3) +
+  geom_sf(data=network$geometry[sel_net], colour="#67000d", size=.1)+
+  geom_sf(data=read_sf("output_max10k.geojson"), alpha=.2, size=.7)+
+  coord_sf(crs=st_crs(zones), datum=NA)+
+  ggtitle("title here")
+
+plot <- (p1+p2)/(p3+p4)
 ```
 
 <!-- Todo: update the above figure with more variations and show resulting route networks below -->
@@ -234,31 +279,19 @@ plot(sf::read_sf("output_max10.geojson")$geometry, add = TRUE)
 <!-- Todo: present results comparing flow from counter data with route network results -->
 
 ```{r, eval=FALSE}
-# routing
+library(sf)
+library(stplanr)
 library(cyclestreets)
 # routing test
 
 routes_fast_top = route(l = desire_lines_top, route_fun = journey)
-sf::write_sf(routes_fast_top, "routes_fast_top.geojson")
-piggyback::pb_upload("routes_fast_top.geojson")
-piggyback::pb_download_url("routes_fast_top.geojson")
-```
-
-The route network level results associated with the same OD pairs are shown in Figure \@ref(fig:rnets).
-
-
-```{r rnets, fig.cap="Route network results."}
-u1 = "https://github.com/Robinlovelace/odnet/releases/download/0/routes_fast_top.geojson"
-f1 = basename(u1)
-if(!file.exists(f1)) download.file(u1, f1)
-routes_fast_top = sf::read_sf(f1)
-# qtm(routes_fast_top %>% sample_n(1000))
-# nrow(routes_fast_top)
+qtm(routes_fast_top %>% sample_n(1000))
+nrow(routes_fast_top)
 rnet_fast = overline(routes_fast_top, "bicycle")
 tm_shape(rnet_fast) +
-  tm_lines(lwd = "bicycle", scale = 4) 
-counters_joined = sf::st_join(counters, rnet_fast, join = sf::st_nearest_feature)
-# cor(counters_joined$mean_count, counters_joined$bicycle)
+  tm_lines(lwd = "bicycle")
+counters_joined = sf::st_join(counters, rnet_fast, join = st_nearest_feature)
+cor(counters_joined$mean_count, counters_joined$bicycle)
 ```
 
 \pagebreak
